@@ -1,542 +1,182 @@
-# PhotoStyler — iPhone App Project Guide
+# PhotoStyler — Project Guide & Decision Log
 
 **Author:** Murali (ML Creative Studios)
-**Started:** September 2026
-**Status:** Phase 1 — Setup & Learning
-**App Type:** Photography / Camera + Filters
-**Platform:** iOS (iPhone) using SwiftUI
+**Platform:** iOS 18.0+ (iPhone), SwiftUI, Swift 6
+**Bundle ID:** `com.mlcreativestudios.PhotoStyler`
+**Repo:** `~/MyApps/PhotoStyler`
+**Goal:** App Store release
+**Last updated:** 2026-09-05
+
+> **This file is the context doc.** It records *why* things are the way they are.
+> `tasks.md` records *what's left*. Read both when resuming after a pause.
+
+---
+
+## 🔄 Resume Here
+
+**Where we are:** Phase 0 (toolchain unblock) → Phase 1 (hygiene) complete and committed.
+
+**What Murali needs to do before Claude can continue past Phase 1:**
+1. Install Homebrew — `sudo` needs a password, Claude can't: 
+   `! /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/brew/HEAD/install.sh)"`
+2. `! gh auth login` — for pushing to GitHub.
+3. Decide on the three open assumptions below (A1, A2, A3) if any are wrong.
+
+**What Claude does next:** finish the iOS platform download → baseline build → Phase 2 camera rewrite.
 
 ---
 
 ## 🎯 App Vision
 
-A personal photography app that combines a **custom camera interface** with **photo filters and effects**, eventually incorporating **AI-powered style transfer** trained on Murali's own wedding photography editing style.
+A photography app pairing a **custom camera** with a **catalog of style profiles** — modeled on the browse-and-apply experience of [Imagen AI's Profile Shop](https://account.imagen-ai.com/profile-shop/) — eventually including AI style transfer trained on Murali's own wedding editing style.
 
-### Core Features (Planned)
-- Custom camera UI with live viewfinder
-- Photo filter presets (warm film, moody editorial, bright airy, etc.)
-- Live preview of filters before capturing
-- Gallery of filtered photos
-- AI style transfer trained on personal editing style (Phase 2)
+A **Style Profile** is a named look (Cinematic, Editorial, Warm, Film, Moody, Vintage…) with tags, a cover preview, a 3D LUT, tunable adjustments, and an intensity slider.
+
+⚠️ **IP boundary:** we take structural and UX inspiration from Imagen's shop only. No Imagen profile data, imagery, creator names, or copy ships in this app. All profiles are authored by Murali.
 
 ---
 
-## 📋 Project Roadmap
+## 📌 Decision Log
 
-| Phase | What | Timeline | Status |
-|-------|------|----------|--------|
-| 1 | Set up tools (Xcode, project) | Day 1 | ✅ Done |
-| 2 | Learn SwiftUI basics | Week 1–2 | 🔄 In Progress |
-| 3 | Build custom camera | Week 3–4 | ⬜ Not Started |
-| 4 | Add photo filters & presets | Week 5–6 | ⬜ Not Started |
-| 5 | Polish & test on iPhone | Week 7–8 | ⬜ Not Started |
-| 6 | AI style transfer (Phase 2) | Month 3+ | ⬜ Future |
+Every decision, with its reasoning. Add a row whenever a call is made.
 
----
+| # | Decision | Value | Why | Date |
+|---|----------|-------|-----|------|
+| D1 | Distribution | **App Store release** | Confirmed by Murali. Sets the bar: privacy manifest, signing, review assets, $99/yr program. | 2026-09-05 |
+| D2 | Minimum iOS | **18.0** (was 26.2) | 26.2 made the app installable on virtually no device. 18.0 covers ~6 years of iPhones while keeping `@Observable`, SwiftData, `RotationCoordinator`. | 2026-09-05 |
+| D3 | Filter concept | **Style Profile catalog** | Replaces the guide's original flat "filter presets". Driven by the Imagen reference Murali supplied. | 2026-09-05 |
+| D4 | Shop scope | **Free bundled catalog now, IAP later** | No backend or payments in v1. Profiles are data (JSON + `.cube`) behind a `ProfileRepository` protocol, so StoreKit 2 becomes a swap rather than a rewrite. | 2026-09-05 |
+| D5 | Tooling | **Full setup** | Homebrew, Node, XcodeBuildMCP, SwiftLint, SwiftFormat, xcbeautify, gh. XcodeBuildMCP lets Claude build/run/screenshot and self-verify. | 2026-09-05 |
+| D6 | Swift 6 migration timing | **Phase 2, not Phase 1** | Flipping `SWIFT_VERSION` to 6.0 before the camera rewrite would break the baseline build, since the camera code is the source of both `Sendable` errors. Fix the cause, then flip. | 2026-09-05 |
+| D7 | Info.plist strategy | **Generated only** | Project had both `GENERATE_INFOPLIST_FILE=YES` and an `INFOPLIST_FILE` pointing at an empty `<dict/>`. Kept the generated route; deleted the stub and its dead exception set. | 2026-09-05 |
 
-## 🛠 Tools & Setup
+### Open assumptions — revisit if wrong
 
-### Required Software
-- **Xcode** — Free from Mac App Store (~12GB download, ~40GB installed)
-- **macOS** — Sequoia 15.6 or later
-- **Apple Developer Account** — Free for development/testing, $99/year for App Store
-
-### Project Settings
-- **Project Name:** PhotoStyler
-- **Organization Identifier:** com.mlcreativestudios
-- **Interface:** SwiftUI
-- **Language:** Swift
-
-### Required Permissions (Info.plist)
-Add these under **Custom iOS Target Properties** in the Info tab:
-
-| Key | Value |
-|-----|-------|
-| Privacy - Camera Usage Description | PhotoStyler needs camera access to take photos |
-| Privacy - Photo Library Usage Description | PhotoStyler needs photo library access to save your photos |
+| # | Assumption | Why | Status |
+|---|------------|-----|--------|
+| A1 | Camera in v1, photo import in v1.1 | Camera is what the project is built around and is the harder half. Engine sits behind a protocol so import is additive. | ⚠️ Unconfirmed |
+| A2 | Profile = 3D LUT + adjustments + intensity | Only approach that reproduces Murali's *actual* Lightroom edits while staying GPU-fast for live preview. | ⚠️ Unconfirmed |
+| A3 | Not yet enrolled in Apple Developer Program | Sequenced early (24–48h approval); nothing blocks until archiving. | ⚠️ Unconfirmed |
+| A4 | Repo at `~/MyApps/PhotoStyler`, private GitHub | Desktop is a fragile home for a real project. | ✅ Done |
+| A5 | iPhone only | Avoids iPad layouts and a second screenshot set for no v1 benefit. | ✅ Done |
 
 ---
 
-## 📁 Project File Structure
+## 🖥 Current State (verified 2026-09-05)
+
+**Environment:** macOS 27.0 · Xcode 26.6 · Swift 6.3.3 · arm64 · git 2.50.1
+**Disk:** ~34 GiB free, 97% full. The bulk is Murali's photography work — never a cleanup target.
+
+| Component | State |
+|-----------|-------|
+| iOS platform | ⏳ Downloading (8.52 GB). **Was the hard blocker** — Xcode 26.6 needs iOS 26.5; only the 26.3 sim runtime was present, so `xcodebuild` reported zero eligible destinations. |
+| Homebrew / Node / gh | ❌ Not installed — needs Murali (sudo password). |
+| XcodeBuildMCP | ❌ Not installed — depends on Node. |
+| Project builds | ❓ Unverified — awaiting platform. |
+| Swift 6 mode | ⚠️ 2 `Sendable` errors in the camera code, fixed in Phase 2. |
+
+### Corrections to earlier versions of this guide
+- The guide claimed Phase 1 setup was ✅ done. In reality the project was on the Desktop, not in `Phoneappphoto/`, and **could not build at all**.
+- The guide's cost table said "$0 total to build & test". True for testing on your own device, but **App Store release costs $99/yr** (D1).
+- The guide's roadmap ("filters", "presets") predates D3 — the profile catalog is a materially larger surface.
+
+---
+
+## 🏗 Target Architecture
 
 ```
 PhotoStyler/
-├── PhotoStylerApp.swift          (auto-generated, app entry point)
-├── ContentView.swift             (home screen with camera & gallery buttons)
-├── CameraManager.swift           (camera hardware engine — AVFoundation)
-├── CameraView.swift              (camera UI — viewfinder, shutter, controls)
-├── Assets.xcassets               (app icons, colors, images)
-└── Preview Content/              (preview assets for Xcode canvas)
+├── App/                  PhotoStylerApp.swift, routing
+├── Core/
+│   ├── Camera/           session (off-main), preview view, rotation coordinator
+│   ├── Imaging/          ImageProcessor, LUTLoader, AdjustmentStack, thumbnail cache
+│   └── Profiles/         StyleProfile, StyleTag, ProfileRepository (protocol)
+├── Features/
+│   ├── Home/  Capture/  ProfileShop/  Gallery/
+├── Resources/            LUTs/*.cube, profiles.json, Assets.xcassets
+└── Support/              PrivacyInfo.xcprivacy
 ```
-
----
-
-## 💻 Source Code
-
-### ContentView.swift
-The home screen with navigation to camera and gallery.
 
 ```swift
-import SwiftUI
-
-struct ContentView: View {
-    @State private var showCamera = false
-    @State private var showGallery = false
-    
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: 40) {
-                
-                Spacer()
-                
-                // App title
-                VStack(spacing: 8) {
-                    Text("PhotoStyler")
-                        .font(.system(size: 36, weight: .bold, design: .rounded))
-                    
-                    Text("Capture. Style. Create.")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                }
-                
-                Spacer()
-                
-                // Camera button
-                Button(action: {
-                    showCamera = true
-                }) {
-                    HStack(spacing: 12) {
-                        Image(systemName: "camera.fill")
-                            .font(.title2)
-                        Text("Open Camera")
-                            .font(.headline)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(Color.blue)
-                    .foregroundColor(.white)
-                    .cornerRadius(16)
-                }
-                
-                // Gallery button
-                Button(action: {
-                    showGallery = true
-                }) {
-                    HStack(spacing: 12) {
-                        Image(systemName: "photo.on.rectangle.angled")
-                            .font(.title2)
-                        Text("My Photos")
-                            .font(.headline)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(Color(.systemGray6))
-                    .foregroundColor(.primary)
-                    .cornerRadius(16)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(Color(.systemGray4), lineWidth: 1)
-                    )
-                }
-                
-                Spacer()
-                
-            }
-            .padding(.horizontal, 24)
-            .navigationBarHidden(true)
-            .fullScreenCover(isPresented: $showCamera) {
-                CameraView()
-            }
-        }
-    }
-}
-
-#Preview {
-    ContentView()
+struct StyleProfile: Identifiable, Codable, Sendable {
+    let id, name, author: String
+    let tags: [StyleTag]
+    let lutName: String?          // .cube in bundle; later downloadable
+    let adjustments: Adjustments
+    let coverAsset: String
 }
 ```
 
----
+### ⚠️ The single most important technical finding
 
-### CameraManager.swift
-The engine that connects to iPhone camera hardware.
+**`AVCaptureVideoPreviewLayer` cannot display a filtered preview.** It renders raw sensor output straight to the screen — no Core Image filter can be inserted into it. The original `CameraManager.swift` in this guide was built on it.
 
-```swift
-import SwiftUI
-import AVFoundation
-import Photos
+A live *styled* viewfinder therefore requires:
 
-// This class manages the actual camera hardware
-class CameraManager: NSObject, ObservableObject {
-    
-    // The capture session connects the camera input to our preview output
-    let session = AVCaptureSession()
-    
-    // Published properties automatically update the UI when they change
-    @Published var recentImage: UIImage?
-    @Published var isCameraReady = false
-    @Published var isUsingFrontCamera = false
-    @Published var isFlashOn = false
-    
-    private let output = AVCapturePhotoOutput()
-    private var currentDevice: AVCaptureDevice?
-    
-    override init() {
-        super.init()
-    }
-    
-    // MARK: - Setup
-    
-    func checkPermissions() {
-        switch AVCaptureDevice.authorizationStatus(for: .video) {
-        case .authorized:
-            setupCamera()
-        case .notDetermined:
-            AVCaptureDevice.requestAccess(for: .video) { granted in
-                if granted {
-                    DispatchQueue.main.async {
-                        self.setupCamera()
-                    }
-                }
-            }
-        default:
-            break
-        }
-    }
-    
-    private func setupCamera() {
-        session.beginConfiguration()
-        session.sessionPreset = .photo
-        
-        // Add camera input
-        guard let device = AVCaptureDevice.default(
-            .builtInWideAngleCamera,
-            for: .video,
-            position: .back
-        ) else { return }
-        
-        currentDevice = device
-        
-        guard let input = try? AVCaptureDeviceInput(device: device) else { return }
-        
-        if session.canAddInput(input) {
-            session.addInput(input)
-        }
-        
-        // Add photo output
-        if session.canAddOutput(output) {
-            session.addOutput(output)
-        }
-        
-        session.commitConfiguration()
-        
-        // Start the camera on a background thread
-        DispatchQueue.global(qos: .userInitiated).async {
-            self.session.startRunning()
-            DispatchQueue.main.async {
-                self.isCameraReady = true
-            }
-        }
-    }
-    
-    // MARK: - Actions
-    
-    func capturePhoto() {
-        let settings = AVCapturePhotoSettings()
-        
-        // Turn on flash if enabled and available
-        if isFlashOn {
-            settings.flashMode = .on
-        } else {
-            settings.flashMode = .off
-        }
-        
-        output.capturePhoto(with: settings, delegate: self)
-    }
-    
-    func flipCamera() {
-        session.beginConfiguration()
-        
-        // Remove current input
-        if let currentInput = session.inputs.first as? AVCaptureDeviceInput {
-            session.removeInput(currentInput)
-        }
-        
-        // Switch camera position
-        isUsingFrontCamera.toggle()
-        let newPosition: AVCaptureDevice.Position = isUsingFrontCamera ? .front : .back
-        
-        guard let newDevice = AVCaptureDevice.default(
-            .builtInWideAngleCamera,
-            for: .video,
-            position: newPosition
-        ) else {
-            session.commitConfiguration()
-            return
-        }
-        
-        currentDevice = newDevice
-        
-        guard let newInput = try? AVCaptureDeviceInput(device: newDevice) else {
-            session.commitConfiguration()
-            return
-        }
-        
-        if session.canAddInput(newInput) {
-            session.addInput(newInput)
-        }
-        
-        session.commitConfiguration()
-    }
-    
-    func toggleFlash() {
-        isFlashOn.toggle()
-    }
-}
-
-// MARK: - Photo Capture Delegate
-
-extension CameraManager: AVCapturePhotoCaptureDelegate {
-    
-    func photoOutput(_ output: AVCapturePhotoOutput,
-                     didFinishProcessingPhoto photo: AVCapturePhoto,
-                     error: Error?) {
-        
-        guard error == nil,
-              let data = photo.fileDataRepresentation(),
-              let image = UIImage(data: data) else {
-            return
-        }
-        
-        DispatchQueue.main.async {
-            self.recentImage = image
-        }
-        
-        // Save to photo library
-        PHPhotoLibrary.requestAuthorization { status in
-            guard status == .authorized else { return }
-            PHPhotoLibrary.shared().performChanges {
-                PHAssetCreationRequest.forAsset()
-                    .addResource(with: .photo, data: data, options: nil)
-            }
-        }
-    }
-}
-
-// MARK: - Camera Preview
-
-// This bridges AVFoundation's camera preview into SwiftUI
-struct CameraPreview: UIViewRepresentable {
-    let session: AVCaptureSession
-    
-    func makeUIView(context: Context) -> UIView {
-        let view = UIView(frame: .zero)
-        let previewLayer = AVCaptureVideoPreviewLayer(session: session)
-        previewLayer.videoGravity = .resizeAspectFill
-        previewLayer.frame = UIScreen.main.bounds
-        view.layer.addSublayer(previewLayer)
-        return view
-    }
-    
-    func updateUIView(_ uiView: UIView, context: Context) {
-        if let layer = uiView.layer.sublayers?.first as? AVCaptureVideoPreviewLayer {
-            layer.frame = uiView.bounds
-        }
-    }
-}
+```
+AVCaptureVideoDataOutput → CMSampleBuffer → CIImage
+    → profile filter chain (LUT + adjustments) → MTKView
 ```
 
----
-
-### CameraView.swift
-The camera UI — viewfinder, shutter button, flash, and camera flip.
-
-```swift
-import SwiftUI
-
-struct CameraView: View {
-    @StateObject private var camera = CameraManager()
-    @Environment(\.dismiss) private var dismiss
-    @State private var showCapturedPhoto = false
-    
-    var body: some View {
-        ZStack {
-            // Live camera preview (fills the whole screen)
-            Color.black.ignoresSafeArea()
-            
-            if camera.isCameraReady {
-                CameraPreview(session: camera.session)
-                    .ignoresSafeArea()
-            }
-            
-            // Camera controls overlay
-            VStack {
-                
-                // Top bar: Close, Flash
-                HStack {
-                    // Close button
-                    Button(action: { dismiss() }) {
-                        Image(systemName: "xmark")
-                            .font(.title3)
-                            .foregroundColor(.white)
-                            .padding(12)
-                            .background(Circle().fill(.ultraThinMaterial))
-                    }
-                    
-                    Spacer()
-                    
-                    // Flash toggle
-                    Button(action: { camera.toggleFlash() }) {
-                        Image(systemName: camera.isFlashOn ? "bolt.fill" : "bolt.slash.fill")
-                            .font(.title3)
-                            .foregroundColor(camera.isFlashOn ? .yellow : .white)
-                            .padding(12)
-                            .background(Circle().fill(.ultraThinMaterial))
-                    }
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 10)
-                
-                Spacer()
-                
-                // Bottom bar: Gallery preview, Shutter, Flip camera
-                HStack(spacing: 40) {
-                    
-                    // Recent photo thumbnail
-                    if let image = camera.recentImage {
-                        Image(uiImage: image)
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: 50, height: 50)
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .stroke(.white, lineWidth: 2)
-                            )
-                    } else {
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(Color.white.opacity(0.2))
-                            .frame(width: 50, height: 50)
-                    }
-                    
-                    // Shutter button
-                    Button(action: {
-                        camera.capturePhoto()
-                    }) {
-                        ZStack {
-                            Circle()
-                                .fill(.white)
-                                .frame(width: 72, height: 72)
-                            Circle()
-                                .stroke(.white, lineWidth: 4)
-                                .frame(width: 82, height: 82)
-                        }
-                    }
-                    
-                    // Flip camera button
-                    Button(action: { camera.flipCamera() }) {
-                        Image(systemName: "camera.rotate.fill")
-                            .font(.title2)
-                            .foregroundColor(.white)
-                            .frame(width: 50, height: 50)
-                            .background(Circle().fill(.ultraThinMaterial))
-                    }
-                }
-                .padding(.bottom, 40)
-            }
-        }
-        .onAppear {
-            camera.checkPermissions()
-        }
-    }
-}
-
-#Preview {
-    CameraView()
-}
-```
+This is why the imaging pipeline (Phase 3) must land before the styled camera UI (Phase 5), and it is the biggest deviation from the code this guide originally contained.
 
 ---
 
-## 🧠 Key SwiftUI Concepts to Know
+## 🐛 Known defects in the original camera code
+
+Recorded so they aren't reintroduced. All addressed in Phase 2 (`tasks.md`).
+
+| Defect | Consequence |
+|--------|-------------|
+| Session config + `startRunning` on the main thread | Visible hang when opening the camera |
+| No `stopRunning` | Camera stays hot: battery drain, hardware held |
+| `settings.flashMode = .on` unconditionally | Front camera has no flash — must check `supportedFlashModes` |
+| `UIScreen.main.bounds` in `CameraPreview` | Deprecated in iOS 26; wrong on multi-scene |
+| Preview layer fetched via `sublayers?.first` | Fragile; use a `UIView` subclass with `layerClass` |
+| No rotation handling | Landscape photos save wrong-way-up |
+| `checkPermissions` → `default: break` | Denied permission = silent black screen, no recovery |
+| `showGallery` state wired to a button that does nothing | Dead UI in `ContentView.swift` |
+| Missing `NSPhotoLibraryAddUsageDescription` | **Crash on first capture** on device — fixed in Phase 1 |
+
+---
+
+## 🧠 SwiftUI Concepts Reference
 
 | Concept | What it does | Example |
 |---------|-------------|---------|
-| `VStack` | Stacks things vertically | Title above button |
-| `HStack` | Stacks things horizontally | Icon next to text |
-| `ZStack` | Layers things on top of each other | Controls over camera |
-| `@State` | A value the view remembers and reacts to | `showCamera = true` |
-| `@Published` | Like @State but for shared classes | Camera ready status |
-| `@StateObject` | Creates and owns a shared object | CameraManager instance |
-| `NavigationStack` | Enables screen-to-screen navigation | Home → Camera |
-| `.fullScreenCover` | Presents a view covering the full screen | Camera over home |
-| `Image(systemName:)` | Uses Apple's built-in SF Symbols icons | camera.fill, bolt.fill |
+| `VStack` / `HStack` / `ZStack` | Vertical / horizontal / layered stacking | Controls over camera |
+| `@State` | A value the view owns and reacts to | `showCamera = true` |
+| `@Observable` | Modern replacement for `ObservableObject` + `@Published` (iOS 17+) | Camera state |
+| `@StateObject` | Creates and owns a reference-type model | Legacy `CameraManager` |
+| `NavigationStack` | Screen-to-screen navigation | Home → Camera |
+| `.fullScreenCover` | Presents a view over the whole screen | Camera over home |
+| `Image(systemName:)` | Apple's SF Symbols | `camera.fill` |
+| `UIViewRepresentable` | Bridges UIKit views into SwiftUI | Camera preview, `MTKView` |
+
+**Core Image terms:** `CIImage` (a recipe, not pixels — lazy) · `CIFilter` (an operation) · `CIContext` (renders the recipe; expensive, create once) · `CIColorCube` (applies a 3D LUT) · `.cube` (Adobe LUT text format).
 
 ---
 
 ## 🔧 Troubleshooting
 
-### Build Failed — "Cannot find CameraView/CameraManager"
-This means the file isn't linked to your project target.
-1. Click on the file in the left sidebar
-2. Open right sidebar (⌥ + Cmd + 1)
-3. Under **Target Membership**, check the **PhotoStyler** box
-4. Repeat for all .swift files
+**`xcodebuild: error: iOS 26.5 is not installed`** — the platform is missing. `xcodebuild -downloadPlatform iOS` (8.5 GB). This was the original blocker.
 
-### Camera shows black screen in Simulator
-This is expected — the Simulator doesn't have a real camera. Deploy to your physical iPhone to test the camera.
+**Camera is a black screen in the Simulator** — expected; the Simulator has no camera. Test on a physical iPhone.
 
-### How to run on your iPhone
-1. Connect iPhone via USB cable
-2. In the device selector (top of Xcode), choose your iPhone
-3. You may need to trust the device: on iPhone go to Settings → General → VPN & Device Management
-4. Press Play (▶) or Cmd + R
+**Run on your iPhone** — connect via USB, pick the device in Xcode's device selector, Cmd+R. First run: iPhone → Settings → General → VPN & Device Management → trust the certificate.
+
+**"Cannot find CameraView/CameraManager"** — no longer applies. This project uses Xcode's synchronized folder groups, so files in `PhotoStyler/` join the target automatically; there is no Target Membership checkbox to set.
 
 ---
 
-## 📅 Next Steps
-
-- [ ] Fix build errors and get the home screen running
-- [ ] Get the camera view working (test on real iPhone)
-- [ ] Build photo filter presets (Phase 4 — CIFilter / Core Image)
-- [ ] Add filter picker UI with live preview thumbnails
-- [ ] Add photo gallery view
-- [ ] Polish UI — app icon, launch screen, animations
-- [ ] Phase 2: Train AI style transfer model with Create ML
-- [ ] Phase 2: Integrate Core ML model into the app
-
----
-
-## 💡 Style Transfer Plan (Phase 2)
-
-### Approach: Start with presets, add AI later
-
-**Manual Presets (Phase 1):**
-- Use Apple's `CIFilter` framework for image processing
-- Create preset combinations for signature styles (warm film, moody editorial, bright airy)
-- Add adjustable intensity slider per filter
-
-**AI Style Transfer (Phase 2):**
-- Use Apple's **Create ML** to train a style transfer model
-- Feed before/after pairs from wedding photography portfolio
-- Export as `.mlmodel` file
-- Integrate into app using **Core ML** framework
-- Add a "My Style" button that applies learned editing aesthetic
-
----
-
-## 📝 Cost Summary
+## 📝 Costs
 
 | Item | Cost |
 |------|------|
-| Xcode | Free |
-| Apple Developer Account (testing only) | Free |
-| Apple Developer Program (App Store) | $99/year |
-| iPhone Simulator testing | Free |
-| Create ML (AI training) | Free |
-| **Total to build & test** | **$0** |
+| Xcode, Simulator, Create ML, Homebrew tooling | Free |
+| Testing on your own iPhone (free Apple ID signing) | Free |
+| **Apple Developer Program — required for App Store (D1)** | **$99/year** |
 
 ---
 
-*Last updated: September 5, 2026*
-*Guide created with help from Claude (Anthropic)*
+*Originally created with help from Claude (Anthropic); maintained as a living decision log.*

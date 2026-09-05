@@ -6,7 +6,7 @@
 > Living file. Updated as work proceeds. Paired with `PhotoStyler_Project_Guide.md` (decisions + context).
 > **Resume here:** read the "Current position" line below, then the guide's Decision Log.
 
-**Current position:** Phase 0 — unblocking the toolchain.
+**Current position:** Phase 0 — iOS platform downloading. Phase 1 project hygiene done and committed (`936885a`). Blocked on Murali for Homebrew (0.5) and `gh auth login` (0.8).
 **Last updated:** 2026-09-05
 
 ---
@@ -19,7 +19,7 @@
 | 0.2 | Free additional space if needed | 👤 | ⬜ | Only if 0.3 fails. Candidates Murali may choose: `~/Desktop/Screen Recording 2026-09-03…mov` (26G), `~/Downloads/Installers` (1.6G), `VSCode-darwin-arm64.dmg` (288M). **Never touch client galleries.** |
 | 0.3 | `xcodebuild -downloadPlatform iOS` | 🤖 | 🔄 | THE blocker. Xcode 26.6 needs iOS 26.5 platform; only 26.3 sim runtime present. Running in background. |
 | 0.4 | Verify destinations resolve | 🤖 | ⬜ | `xcodebuild -showdestinations` must list real simulators (currently lists zero). |
-| 0.5 | Install Homebrew | 🤖 | ⬜ | Not present on machine. |
+| 0.5 | Install Homebrew | 🤖 | ⛔ | 🔴 **Needs Murali** — `sudo` requires a password, so Claude cannot install Homebrew. Run: `! /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/brew/HEAD/install.sh)"` |
 | 0.6 | `brew install node swiftlint swiftformat xcbeautify gh` | 🤖 | ⬜ | Node needed for XcodeBuildMCP. |
 | 0.7 | Add XcodeBuildMCP server | 🤖 | ⬜ | `claude mcp add xcodebuild -- npx -y xcodebuildmcp@latest`. Gives build/test/sim-control/screenshots. |
 | 0.8 | `gh auth login` | 👤 | ⬜ | Interactive — run `! gh auth login` in the session. |
@@ -31,14 +31,14 @@
 |---|------|-------|--------|-------|
 | 1.1 | Move repo to `~/MyApps/PhotoStyler` | 🤖 | ✅ | Was `~/Desktop/PhotoStyler`. Git history preserved (2 commits). Guide moved in alongside. |
 | 1.2 | Commit pre-existing WIP | 🤖 | ✅ | `a157d37` — 4 dirty files from the guide were uncommitted. |
-| 1.3 | Add `.gitignore` | 🤖 | ⬜ | `xcuserdata/`, `DerivedData/`, `.DS_Store`. None exists — Xcode user state is polluting commits. |
+| 1.3 | Add `.gitignore` | 🤖 | ✅ | Added; also untracked Xcode user state that was already committed. |
 | 1.4 | Create private GitHub repo + push | 🤖 | ⬜ | Depends on 0.8. |
-| 1.5 | `IPHONEOS_DEPLOYMENT_TARGET` 26.2 → 18.0 | 🤖 | ⬜ | **D2.** Currently installable on almost no device. |
-| 1.6 | `TARGETED_DEVICE_FAMILY` `1,2` → `1` | 🤖 | ⬜ | **A5.** iPhone only; avoids iPad layouts + second screenshot set. |
-| 1.7 | Resolve Info.plist conflict | 🤖 | ⬜ | Both `GENERATE_INFOPLIST_FILE=YES` and `INFOPLIST_FILE` → empty `<dict/>`. Keep generated, delete stub. |
-| 1.8 | Add `NSPhotoLibraryAddUsageDescription` | 🤖 | ⬜ | 🔴 **Crash risk.** Code calls `PHPhotoLibrary.requestAuthorization` to write; missing key = crash on first capture on device. |
-| 1.9 | Rename `cameramanager.swift` → `CameraManager.swift` | 🤖 | ⬜ | Only lowercase file in project. |
-| 1.10 | `SWIFT_VERSION` 5.0 → 6.0 + strict concurrency | 🤖 | ⬜ | Fix the 2 `Sendable` errors properly in Phase 2, not by suppressing. |
+| 1.5 | `IPHONEOS_DEPLOYMENT_TARGET` 26.2 → 18.0 | 🤖 | ✅ | **D2.** Done in both Debug and Release. |
+| 1.6 | `TARGETED_DEVICE_FAMILY` `1,2` → `1` | 🤖 | ✅ | **A5.** Also removed the iPad orientation keys. |
+| 1.7 | Resolve Info.plist conflict | 🤖 | ✅ | Deleted the stub and the now-dead `PBXFileSystemSynchronizedBuildFileExceptionSet` that existed only to exclude it. |
+| 1.8 | Add `NSPhotoLibraryAddUsageDescription` | 🤖 | ✅ | 🔴 Fixed. Also added `ITSAppUsesNonExemptEncryption=NO`, app category `photography`, display name. |
+| 1.9 | Rename `cameramanager.swift` → `CameraManager.swift` | 🤖 | ✅ | Project uses synchronized folder groups, so the rename needed no pbxproj file references. |
+| 1.10 | `SWIFT_VERSION` 5.0 → 6.0 + strict concurrency | 🤖 | ⏭ | **Moved to Phase 2.** Flipping to Swift 6 now would break the baseline build before the camera rewrite lands (task 2.1) that actually fixes the `Sendable` errors. |
 | 1.11 | SwiftLint + SwiftFormat config & build phase | 🤖 | ⬜ | Depends on 0.6. |
 
 ## Phase 2 — Camera layer rebuild
