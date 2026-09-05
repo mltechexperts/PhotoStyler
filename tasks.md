@@ -6,7 +6,7 @@
 > Living file. Updated as work proceeds. Paired with `PhotoStyler_Project_Guide.md` (decisions + context).
 > **Resume here:** read the "Current position" line below, then the guide's Decision Log.
 
-**Current position:** Phases 0, 1, 2 complete. Swift 6, zero warnings. Camera rewritten and its failure paths verified by screenshot; the live viewfinder still needs a physical iPhone (6.5). Next: Phase 3/4 — profile manifest, starter profiles, and the shop UI. Blocked on Murali for Homebrew (0.5) and `gh auth login` (0.8).
+**Current position:** Phases 0, 1, 2 complete. Swift 6, zero warnings. Camera rewritten and its failure paths verified by screenshot; the live viewfinder still needs a physical iPhone (6.5). Next: Phase 3/4 — profile manifest, starter profiles, and the shop UI. Repo is backed up to GitHub. Only remaining Murali blocker is Homebrew (0.5), which is convenience, not capability.
 **Last updated:** 2026-09-05
 
 ---
@@ -22,7 +22,7 @@
 | 0.5 | Install Homebrew | 🤖 | ⛔ | 🔴 **Needs Murali** — `sudo` requires a password, so Claude cannot install Homebrew. Run: `! /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/brew/HEAD/install.sh)"` |
 | 0.6 | `brew install node swiftlint swiftformat xcbeautify gh` | 🤖 | ⬜ | Node needed for XcodeBuildMCP. |
 | 0.7 | Add XcodeBuildMCP server | 🤖 | ⬜ | `claude mcp add xcodebuild -- npx -y xcodebuildmcp@latest`. Gives build/test/sim-control/screenshots. |
-| 0.8 | `gh auth login` | 👤 | ⬜ | Interactive — run `! gh auth login` in the session. |
+| 0.8 | `gh auth login` | 👤 | ✅ | Logged in as `mltechexperts` via browser flow (after the device-code flow failed twice). `gh auth setup-git` writes a **per-host** helper, not global `credential.helper`. |
 | 0.9 | Baseline build of untouched project | 🤖 | ✅ | 🎉 **First successful build of this project.** Real failure was `@Published` needing an explicit `import Combine` — the project enables `SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY`, so SwiftUI no longer re-exports it. Installed and launched on iPhone 17 sim; home screen verified by screenshot. |
 
 ## Phase 1 — Project hygiene & repo
@@ -32,7 +32,7 @@
 | 1.1 | Move repo to `~/MyApps/PhotoStyler` | 🤖 | ✅ | Was `~/Desktop/PhotoStyler`. Git history preserved (2 commits). Guide moved in alongside. |
 | 1.2 | Commit pre-existing WIP | 🤖 | ✅ | `a157d37` — 4 dirty files from the guide were uncommitted. |
 | 1.3 | Add `.gitignore` | 🤖 | ✅ | Added; also untracked Xcode user state that was already committed. |
-| 1.4 | Create private GitHub repo + push | 🤖 | ⬜ | Depends on 0.8. |
+| 1.4 | Create private GitHub repo + push | 🤖 | ✅ | **https://github.com/mltechexperts/PhotoStyler** — private, `main`, 6 commits pushed. Local and remote in sync. |
 | 1.5 | `IPHONEOS_DEPLOYMENT_TARGET` 26.2 → 18.0 | 🤖 | ✅ | **D2.** Done in both Debug and Release. |
 | 1.6 | `TARGETED_DEVICE_FAMILY` `1,2` → `1` | 🤖 | ✅ | **A5.** Also removed the iPad orientation keys. |
 | 1.7 | Resolve Info.plist conflict | 🤖 | ✅ | Deleted the stub and the now-dead `PBXFileSystemSynchronizedBuildFileExceptionSet` that existed only to exclude it. |
