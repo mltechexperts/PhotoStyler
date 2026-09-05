@@ -6,7 +6,7 @@
 > Living file. Updated as work proceeds. Paired with `PhotoStyler_Project_Guide.md` (decisions + context).
 > **Resume here:** read the "Current position" line below, then the guide's Decision Log.
 
-**Current position:** Phase 0 — iOS platform downloading. Phase 1 project hygiene done and committed (`936885a`). Blocked on Murali for Homebrew (0.5) and `gh auth login` (0.8).
+**Current position:** Phase 0 complete — project builds and runs on the simulator for the first time. Phase 1 done. Imaging + profile core written (Phase 3/4 foundations). Blocked on Murali for Homebrew (0.5) and `gh auth login` (0.8); next Claude task is the Phase 2 camera rewrite.
 **Last updated:** 2026-09-05
 
 ---
@@ -16,14 +16,14 @@
 | # | Task | Owner | Status | Notes |
 |---|------|-------|--------|-------|
 | 0.1 | Audit disk space | 🤖 | ✅ | 40 GiB free / 96% full. Xcode caches only ~335 MB — not the problem. Big items are Murali's photo work (Desktop 247G, Pictures 159G, Downloads 119G). Nothing deleted. |
-| 0.2 | Free additional space if needed | 👤 | ⬜ | Only if 0.3 fails. Candidates Murali may choose: `~/Desktop/Screen Recording 2026-09-03…mov` (26G), `~/Downloads/Installers` (1.6G), `VSCode-darwin-arm64.dmg` (288M). **Never touch client galleries.** |
-| 0.3 | `xcodebuild -downloadPlatform iOS` | 🤖 | 🔄 | THE blocker. Xcode 26.6 needs iOS 26.5 platform; only 26.3 sim runtime present. Running in background. |
-| 0.4 | Verify destinations resolve | 🤖 | ⬜ | `xcodebuild -showdestinations` must list real simulators (currently lists zero). |
+| 0.2 | Free additional space if needed | 👤 | ✅ | Not needed — download completed with ~32 GiB to spare. Nothing deleted. |
+| 0.3 | `xcodebuild -downloadPlatform iOS` | 🤖 | ✅ | **Unblocked.** iOS 26.5 platform + simulator runtime installed (8.52 GB, exit 0). Restarted once mid-download; second attempt succeeded. |
+| 0.4 | Verify destinations resolve | 🤖 | ✅ | Simulators now enumerate (iOS 26.3.1 and 26.5). Previously zero eligible destinations. |
 | 0.5 | Install Homebrew | 🤖 | ⛔ | 🔴 **Needs Murali** — `sudo` requires a password, so Claude cannot install Homebrew. Run: `! /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/brew/HEAD/install.sh)"` |
 | 0.6 | `brew install node swiftlint swiftformat xcbeautify gh` | 🤖 | ⬜ | Node needed for XcodeBuildMCP. |
 | 0.7 | Add XcodeBuildMCP server | 🤖 | ⬜ | `claude mcp add xcodebuild -- npx -y xcodebuildmcp@latest`. Gives build/test/sim-control/screenshots. |
 | 0.8 | `gh auth login` | 👤 | ⬜ | Interactive — run `! gh auth login` in the session. |
-| 0.9 | Baseline build of untouched project | 🤖 | ⬜ | Must be green before any code changes. |
+| 0.9 | Baseline build of untouched project | 🤖 | ✅ | 🎉 **First successful build of this project.** Real failure was `@Published` needing an explicit `import Combine` — the project enables `SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY`, so SwiftUI no longer re-exports it. Installed and launched on iPhone 17 sim; home screen verified by screenshot. |
 
 ## Phase 1 — Project hygiene & repo
 
@@ -58,9 +58,9 @@
 
 | # | Task | Owner | Status | Notes |
 |---|------|-------|--------|-------|
-| 3.1 | `ImageProcessor` w/ shared Metal `CIContext` | 🤖 | ⬜ | `cacheIntermediates: false`, renders off main thread. |
-| 3.2 | `LUTLoader` — `.cube` → `CIColorCubeWithColorSpace` | 🤖 | ⬜ | Parse once, cache. Never per-frame. |
-| 3.3 | `AdjustmentStack` | 🤖 | ⬜ | Exposure, contrast, saturation, temp/tint, highlights/shadows, grain, vignette, fade, skin-tone protection. |
+| 3.1 | `ImageProcessor` w/ shared Metal `CIContext` | 🤖 | 🔄 | `ImageProcessor.swift` written: shared Metal `CIContext`, ordered chain (tone → colour → LUT → fade → grain → vignette), `CIMix` intensity blend, JPEG export. Not yet exercised against real images. |
+| 3.2 | `LUTLoader` — `.cube` → `CIColorCubeWithColorSpace` | 🤖 | ✅ | `CubeLUT.swift` — Adobe Cube parser (TITLE/LUT_3D_SIZE/DOMAIN_MIN/MAX, comments, blank lines), typed errors, 128 dimension cap, `LUTStore` parse cache behind an `NSLock`. |
+| 3.3 | `AdjustmentStack` | 🤖 | ✅ | `Adjustments.swift` — 10 parameters, neutral-by-default, per-key decoding so manifests only name what they change, `clamped()` treats profile data as untrusted. |
 | 3.4 | Intensity blend (original ↔ styled) | 🤖 | ⬜ | |
 | 3.5 | Split preview (downscaled, 30fps) vs export (full-res, EXIF) paths | 🤖 | ⬜ | |
 | 3.6 | Thumbnail cache for profile grid | 🤖 | ⬜ | |
@@ -69,8 +69,8 @@
 
 | # | Task | Owner | Status | Notes |
 |---|------|-------|--------|-------|
-| 4.1 | `StyleProfile` model + `StyleTag` | 🤖 | ⬜ | Codable/Sendable. |
-| 4.2 | `ProfileRepository` protocol + bundled impl | 🤖 | ⬜ | **D4** — protocol is what makes StoreKit IAP a later swap, not a rewrite. |
+| 4.1 | `StyleProfile` model + `StyleTag` | 🤖 | ✅ | `StyleProfile.swift` — `StyleTag` is raw-string backed so new tags need no app update; synthesised `.original` pass-through. |
+| 4.2 | `ProfileRepository` protocol + bundled impl | 🤖 | ✅ | `ProfileRepository` protocol + `BundledProfileRepository`. This is the seam that makes D4 (IAP later) a swap. |
 | 4.3 | JSON manifest + `.cube` files in Resources | 🤖 | ⬜ | Profiles are data, not code. |
 | 4.4 | Shop UI: grid, search, tag chips, sort | 🤖 | ⬜ | Structural inspiration from Imagen only — no Imagen data/imagery/names/copy. |
 | 4.5 | Detail sheet + before/after drag compare | 🤖 | ⬜ | |
