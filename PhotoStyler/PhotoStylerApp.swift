@@ -5,6 +5,7 @@
 //  Created by muralidhar lalagiri on 3/20/26.
 //
 
+import SwiftData
 import SwiftUI
 
 @main
@@ -13,5 +14,6 @@ struct PhotoStylerApp: App {
         WindowGroup {
             ContentView()
         }
+        .modelContainer(for: CapturedPhoto.self)
     }
 }

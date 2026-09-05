@@ -1,9 +1,11 @@
 import AVFoundation
+import SwiftData
 import SwiftUI
 
 struct CameraView: View {
     @State private var camera = CameraModel()
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
 
     var body: some View {
         ZStack {
@@ -35,7 +37,10 @@ struct CameraView: View {
             controls
         }
         .animation(.easeInOut(duration: 0.2), value: camera.phase)
-        .task { await camera.onAppear() }
+        .task {
+            camera.modelContext = modelContext
+            await camera.onAppear()
+        }
         .onDisappear { Task { await camera.onDisappear() } }
         .statusBarHidden()
     }

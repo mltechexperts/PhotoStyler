@@ -1,5 +1,6 @@
 import AVFoundation
 import Observation
+import SwiftData
 import OSLog
 import SwiftUI
 
@@ -50,6 +51,10 @@ final class CameraModel {
     var intensity: Float = 1 { didSet { pushStyle() } }
 
     private let catalogRepository: any ProfileRepository
+
+    /// Set by the view so captures can be recorded. Optional because the model
+    /// is constructed before the environment is available.
+    var modelContext: ModelContext?
 
     #if targetEnvironment(simulator)
     private var simulatedFeed: SimulatedCameraFeed?
@@ -203,7 +208,7 @@ final class CameraModel {
             let styled = try await style(raw)
             recentImage = UIImage(data: styled)
             try await PhotoLibrarySaver.save(styled)
-            lastCaptureProfileID = selectedProfile.id
+            record(styled)
         } catch {
             transientError = error.localizedDescription
             Self.logger.error("Capture failed: \(error.localizedDescription, privacy: .public)")
@@ -233,9 +238,27 @@ final class CameraModel {
         if focusIndicator == point { focusIndicator = nil }
     }
 
-    /// Set after a successful capture so the gallery can record which profile
-    /// produced the file.
-    private(set) var lastCaptureProfileID: String?
+    /// Writes the app's own copy and its metadata.
+    ///
+    /// A failure here must not surface as a capture failure: the photo is
+    /// already safely in the user's library by this point.
+    private func record(_ data: Data) {
+        guard let modelContext else { return }
+        do {
+            let fileName = try PhotoStore.write(data)
+            modelContext.insert(
+                CapturedPhoto(
+                    fileName: fileName,
+                    profileID: selectedProfile.id,
+                    profileName: selectedProfile.isOriginal ? "" : selectedProfile.name,
+                    intensity: Double(intensity)
+                )
+            )
+            try modelContext.save()
+        } catch {
+            Self.logger.error("Could not record capture: \(error.localizedDescription, privacy: .public)")
+        }
+    }
 
     private func captureData(flashMode: AVCaptureDevice.FlashMode) async throws -> Data {
         #if targetEnvironment(simulator)

@@ -3,6 +3,7 @@ import SwiftUI
 struct ContentView: View {
     @State private var showCamera = false
     @State private var showStyles = false
+    @State private var showGallery = false
     
     var body: some View {
         NavigationStack {
@@ -60,6 +61,27 @@ struct ContentView: View {
                     )
                 }
                 
+                // Gallery button
+                Button(action: {
+                    showGallery = true
+                }) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "photo.on.rectangle.angled")
+                            .font(.title2)
+                        Text("My Photos")
+                            .font(.headline)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(Color(.systemGray6))
+                    .foregroundColor(.primary)
+                    .cornerRadius(16)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(Color(.systemGray4), lineWidth: 1)
+                    )
+                }
+
                 Spacer()
                 
             }
@@ -71,6 +93,9 @@ struct ContentView: View {
             .sheet(isPresented: $showStyles) {
                 ProfileShopView()
             }
+            .sheet(isPresented: $showGallery) {
+                GalleryView()
+            }
             #if DEBUG
             // Lets UI tests and screenshot automation land directly on the
             // camera without driving the home screen.
@@ -80,6 +105,9 @@ struct ContentView: View {
                 }
                 if ProcessInfo.processInfo.arguments.contains("-openStyles") {
                     showStyles = true
+                }
+                if ProcessInfo.processInfo.arguments.contains("-openGallery") {
+                    showGallery = true
                 }
             }
             #endif
