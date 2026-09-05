@@ -1,0 +1,90 @@
+[
+  {
+    "id": "cinematic",
+    "name": "Cinematic",
+    "author": "ML Creative Studios",
+    "summary": "Teal shadows and warm highlights, with a filmic contrast curve. Built for reception dancing and dusk portraits.",
+    "tags": ["cinematic", "moody", "bold"],
+    "lutName": "Cinematic",
+    "adjustments": { "contrast": 1.04, "vignette": 0.18 },
+    "coverAsset": "",
+    "sortOrder": 10
+  },
+  {
+    "id": "warm-film",
+    "name": "Warm Film",
+    "author": "ML Creative Studios",
+    "summary": "Warm negative stock with lifted blacks and a gentle roll-off. The everyday wedding look.",
+    "tags": ["film", "warm", "vintage", "wedding"],
+    "lutName": "WarmFilm",
+    "adjustments": { "fade": 0.22, "grain": 0.16, "saturation": 1.04 },
+    "coverAsset": "",
+    "sortOrder": 20
+  },
+  {
+    "id": "airy",
+    "name": "Airy",
+    "author": "ML Creative Studios",
+    "summary": "Bright and open with softened contrast and clean whites. Getting-ready rooms and daylight ceremonies.",
+    "tags": ["airy", "clean", "wedding", "natural-skin"],
+    "lutName": "Airy",
+    "adjustments": { "exposure": 0.15, "shadows": 0.18 },
+    "coverAsset": "",
+    "sortOrder": 30
+  },
+  {
+    "id": "monochrome",
+    "name": "Monochrome",
+    "author": "ML Creative Studios",
+    "summary": "Panchromatic black and white on a deep print curve. Red-weighted so skin separates from foliage.",
+    "tags": ["black-and-white", "editorial", "portrait"],
+    "lutName": "Monochrome",
+    "adjustments": { "contrast": 1.06, "grain": 0.20 },
+    "coverAsset": "",
+    "sortOrder": 40
+  },
+  {
+    "id": "editorial",
+    "name": "Editorial",
+    "author": "ML Creative Studios",
+    "summary": "Restrained saturation against firm contrast. Magazine-leaning, keeps detail in a white dress.",
+    "tags": ["editorial", "clean", "bold"],
+    "lutName": null,
+    "adjustments": { "contrast": 1.18, "saturation": 0.88, "highlights": -0.25, "shadows": -0.10 },
+    "coverAsset": "",
+    "sortOrder": 50
+  },
+  {
+    "id": "golden-hour",
+    "name": "Golden Hour",
+    "author": "ML Creative Studios",
+    "summary": "Pushes warmth and lifts the shadows the way late sun does. Flattering on most skin tones.",
+    "tags": ["warm", "natural-skin", "portrait"],
+    "lutName": null,
+    "adjustments": { "temperature": 0.42, "exposure": 0.12, "shadows": 0.22, "fade": 0.12, "vignette": 0.12 },
+    "coverAsset": "",
+    "sortOrder": 60
+  },
+  {
+    "id": "moody-blue",
+    "name": "Moody Blue",
+    "author": "ML Creative Studios",
+    "summary": "Cool and low-key, with the shadows pulled down. Blue hour and candlelit interiors.",
+    "tags": ["moody", "cool", "cinematic"],
+    "lutName": null,
+    "adjustments": { "temperature": -0.38, "tint": -0.08, "shadows": -0.30, "contrast": 1.12, "vignette": 0.30 },
+    "coverAsset": "",
+    "sortOrder": 70
+  },
+  {
+    "id": "natural",
+    "name": "Natural",
+    "author": "ML Creative Studios",
+    "summary": "A light touch. Corrects rather than styles, for when the light was already right.",
+    "tags": ["natural-skin", "clean", "true-to-life"],
+    "lutName": null,
+    "adjustments": { "contrast": 1.04, "saturation": 1.03, "shadows": 0.08 },
+    "coverAsset": "",
+    "sortOrder": 80
+  }
+]

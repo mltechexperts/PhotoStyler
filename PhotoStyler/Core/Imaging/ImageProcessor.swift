@@ -170,6 +170,18 @@ nonisolated final class ImageProcessor: @unchecked Sendable {
 
     // MARK: - Rendering
 
+    /// Downscales for the live preview and the shop grid.
+    ///
+    /// Rendering the full sensor image every frame is what makes a styled
+    /// viewfinder drop frames; the export path below is the one that runs at
+    /// full resolution.
+    func previewImage(_ image: CIImage, maxDimension: CGFloat) -> CIImage {
+        let longest = max(image.extent.width, image.extent.height)
+        guard longest > maxDimension, longest > 0 else { return image }
+        let scale = maxDimension / longest
+        return image.transformed(by: .init(scaleX: scale, y: scale))
+    }
+
     /// Renders to a `CGImage`. Call off the main thread.
     func makeCGImage(_ image: CIImage) -> CGImage? {
         context.createCGImage(image, from: image.extent)

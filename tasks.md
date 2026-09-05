@@ -6,7 +6,7 @@
 > Living file. Updated as work proceeds. Paired with `PhotoStyler_Project_Guide.md` (decisions + context).
 > **Resume here:** read the "Current position" line below, then the guide's Decision Log.
 
-**Current position:** Phases 0, 1, 2 complete. Swift 6, zero warnings. Camera rewritten and its failure paths verified by screenshot; the live viewfinder still needs a physical iPhone (6.5). Next: Phase 3/4 — profile manifest, starter profiles, and the shop UI. Repo is backed up to GitHub. Only remaining Murali blocker is Homebrew (0.5), which is convenience, not capability.
+**Current position:** Phases 0, 1, 2 complete. Swift 6, zero warnings. Camera rewritten and its failure paths verified by screenshot; the live viewfinder still needs a physical iPhone (6.5). Phases 3 and 4 complete except 4.7 (Murali's own LUTs). Next: Phase 5 — styled live viewfinder (Metal), gallery, polish. Repo is backed up to GitHub. Only remaining Murali blocker is Homebrew (0.5), which is convenience, not capability.
 **Last updated:** 2026-09-05
 
 ---
@@ -58,12 +58,12 @@
 
 | # | Task | Owner | Status | Notes |
 |---|------|-------|--------|-------|
-| 3.1 | `ImageProcessor` w/ shared Metal `CIContext` | 🤖 | 🔄 | `ImageProcessor.swift` written: shared Metal `CIContext`, ordered chain (tone → colour → LUT → fade → grain → vignette), `CIMix` intensity blend, JPEG export. Not yet exercised against real images. |
+| 3.1 | `ImageProcessor` w/ shared Metal `CIContext` | 🤖 | ✅ | Exercised end-to-end: 8 profiles render correctly through the shared Metal `CIContext`. |
 | 3.2 | `LUTLoader` — `.cube` → `CIColorCubeWithColorSpace` | 🤖 | ✅ | `CubeLUT.swift` — Adobe Cube parser (TITLE/LUT_3D_SIZE/DOMAIN_MIN/MAX, comments, blank lines), typed errors, 128 dimension cap, `LUTStore` parse cache behind an `NSLock`. |
 | 3.3 | `AdjustmentStack` | 🤖 | ✅ | `Adjustments.swift` — 10 parameters, neutral-by-default, per-key decoding so manifests only name what they change, `clamped()` treats profile data as untrusted. |
 | 3.4 | Intensity blend (original ↔ styled) | 🤖 | ⬜ | |
-| 3.5 | Split preview (downscaled, 30fps) vs export (full-res, EXIF) paths | 🤖 | ⬜ | |
-| 3.6 | Thumbnail cache for profile grid | 🤖 | ⬜ | |
+| 3.5 | Split preview (downscaled, 30fps) vs export (full-res, EXIF) paths | 🤖 | ✅ | `previewImage(_:maxDimension:)` splits the downscaled path from full-res export. |
+| 3.6 | Thumbnail cache for profile grid | 🤖 | ✅ | `ThumbnailRenderer` with `NSCache` (80 entries), keyed by profile id + size, rendered on a detached task. |
 
 ## Phase 4 — Style Profile catalog
 
@@ -71,10 +71,10 @@
 |---|------|-------|--------|-------|
 | 4.1 | `StyleProfile` model + `StyleTag` | 🤖 | ✅ | `StyleProfile.swift` — `StyleTag` is raw-string backed so new tags need no app update; synthesised `.original` pass-through. |
 | 4.2 | `ProfileRepository` protocol + bundled impl | 🤖 | ✅ | `ProfileRepository` protocol + `BundledProfileRepository`. This is the seam that makes D4 (IAP later) a swap. |
-| 4.3 | JSON manifest + `.cube` files in Resources | 🤖 | ⬜ | Profiles are data, not code. |
-| 4.4 | Shop UI: grid, search, tag chips, sort | 🤖 | ⬜ | Structural inspiration from Imagen only — no Imagen data/imagery/names/copy. |
-| 4.5 | Detail sheet + before/after drag compare | 🤖 | ⬜ | |
-| 4.6 | Ship 6–8 starter profiles | 🤖 | ⬜ | |
+| 4.3 | JSON manifest + `.cube` files in Resources | 🤖 | ✅ | `Resources/profiles.json` (8 profiles) + 4 generated 33³ `.cube` LUTs. Xcode flattens them to the bundle root, which `LUTStore`'s lookup already handles. |
+| 4.4 | Shop UI: grid, search, tag chips, sort | 🤖 | ✅ | `ProfileShopView`: adaptive grid, `.searchable`, scrolling tag chips (AND-combining), curated/name sort, empty state with Clear Filters. |
+| 4.5 | Detail sheet + before/after drag compare | 🤖 | ✅ | `ProfileDetailView` with drag-to-compare divider and intensity slider. Re-renders are quantised to 20 steps so dragging doesn't queue a render per pixel. |
+| 4.6 | Ship 6–8 starter profiles | 🤖 | ✅ | 8 starters: Cinematic, Warm Film, Airy, Monochrome (LUT-backed) + Editorial, Golden Hour, Moody Blue, Natural (adjustments only). Generator at `tools/generate_luts.py`. |
 | 4.7 | Export Lightroom looks as `.cube` LUTs | 👤 | ⬜ | **A2.** This is what makes the profiles genuinely *yours*. Drop-in, no code change. |
 
 ## Phase 5 — Capture, gallery, polish

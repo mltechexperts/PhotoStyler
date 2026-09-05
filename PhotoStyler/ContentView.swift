@@ -2,7 +2,7 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var showCamera = false
-    @State private var showGallery = false
+    @State private var showStyles = false
     
     var body: some View {
         NavigationStack {
@@ -39,14 +39,14 @@ struct ContentView: View {
                     .cornerRadius(16)
                 }
                 
-                // Gallery button
+                // Styles button
                 Button(action: {
-                    showGallery = true
+                    showStyles = true
                 }) {
                     HStack(spacing: 12) {
-                        Image(systemName: "photo.on.rectangle.angled")
+                        Image(systemName: "swatchpalette")
                             .font(.title2)
-                        Text("My Photos")
+                        Text("Browse Styles")
                             .font(.headline)
                     }
                     .frame(maxWidth: .infinity)
@@ -68,12 +68,18 @@ struct ContentView: View {
             .fullScreenCover(isPresented: $showCamera) {
                 CameraView()
             }
+            .sheet(isPresented: $showStyles) {
+                ProfileShopView()
+            }
             #if DEBUG
             // Lets UI tests and screenshot automation land directly on the
             // camera without driving the home screen.
             .onAppear {
                 if ProcessInfo.processInfo.arguments.contains("-openCamera") {
                     showCamera = true
+                }
+                if ProcessInfo.processInfo.arguments.contains("-openStyles") {
+                    showStyles = true
                 }
             }
             #endif
