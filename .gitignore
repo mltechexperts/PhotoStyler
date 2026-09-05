@@ -1,0 +1,29 @@
+# macOS
+.DS_Store
+
+# Xcode
+build/
+DerivedData/
+*.xcuserstate
+*.xcworkspace/xcuserdata/
+xcuserdata/
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Swift Package Manager
+.build/
+.swiftpm/xcode/package.xcworkspace/xcuserdata/
+Packages/
+
+# Signing / secrets — never commit
+*.mobileprovision
+*.p12
+*.cer
+ExportOptions.plist
+
+# Fastlane
+fastlane/report.xml
+fastlane/screenshots
