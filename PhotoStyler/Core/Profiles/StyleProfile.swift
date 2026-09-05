@@ -2,7 +2,7 @@ import Foundation
 
 /// A browsable category label. Backed by a raw string so the profile manifest
 /// can introduce new tags without an app update.
-struct StyleTag: RawRepresentable, Codable, Sendable, Hashable, Identifiable {
+nonisolated struct StyleTag: RawRepresentable, Codable, Sendable, Hashable, Identifiable {
     let rawValue: String
     var id: String { rawValue }
 
@@ -46,7 +46,7 @@ struct StyleTag: RawRepresentable, Codable, Sendable, Hashable, Identifiable {
 }
 
 /// A named look: a LUT for colour grading plus adjustments layered on top.
-struct StyleProfile: Identifiable, Codable, Sendable, Hashable {
+nonisolated struct StyleProfile: Identifiable, Codable, Sendable, Hashable {
     let id: String
     let name: String
     let author: String

@@ -5,7 +5,7 @@ import Foundation
 /// Every value is centred so that `.neutral` is a genuine no-op: the filter
 /// chain skips any stage whose parameters are still at their defaults, which
 /// keeps the live preview cheap for profiles that only carry a LUT.
-struct Adjustments: Codable, Sendable, Hashable {
+nonisolated struct Adjustments: Codable, Sendable, Hashable {
 
     /// Exposure in stops. Range -2...2.
     var exposure: Float = 0
@@ -33,7 +33,7 @@ struct Adjustments: Codable, Sendable, Hashable {
     var isNeutral: Bool { self == .neutral }
 }
 
-extension Adjustments {
+nonisolated extension Adjustments {
 
     // Decoded key-by-key so a profile's JSON only has to name the parameters it
     // actually changes. Synthesised Codable would require every key present.

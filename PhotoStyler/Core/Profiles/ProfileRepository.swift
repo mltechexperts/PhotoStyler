@@ -6,12 +6,12 @@ import OSLog
 /// The app talks only to this protocol, so the current bundled catalogue can be
 /// replaced by a downloading, purchase-aware implementation (D4) without any
 /// change to the shop or camera UI.
-protocol ProfileRepository: Sendable {
+nonisolated protocol ProfileRepository: Sendable {
     func loadProfiles() async throws -> [StyleProfile]
 }
 
 /// Reads `profiles.json` from the app bundle.
-struct BundledProfileRepository: ProfileRepository {
+nonisolated struct BundledProfileRepository: ProfileRepository {
     private static let logger = Logger(subsystem: "com.mlcreativestudios.PhotoStyler", category: "profiles")
 
     let bundle: Bundle

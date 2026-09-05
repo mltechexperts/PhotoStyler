@@ -64,10 +64,19 @@ struct ContentView: View {
                 
             }
             .padding(.horizontal, 24)
-            .navigationBarHidden(true)
+            .toolbar(.hidden, for: .navigationBar)
             .fullScreenCover(isPresented: $showCamera) {
                 CameraView()
             }
+            #if DEBUG
+            // Lets UI tests and screenshot automation land directly on the
+            // camera without driving the home screen.
+            .onAppear {
+                if ProcessInfo.processInfo.arguments.contains("-openCamera") {
+                    showCamera = true
+                }
+            }
+            #endif
         }
     }
 }

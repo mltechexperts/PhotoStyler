@@ -6,7 +6,7 @@ import Foundation
 /// `data` holds `dimension^3` RGBA `Float32` texels ordered with red varying
 /// fastest, then green, then blue. That is exactly the layout Core Image's
 /// colour-cube filters expect, so no repacking happens at render time.
-struct CubeLUT: Sendable, Equatable {
+nonisolated struct CubeLUT: Sendable, Equatable {
     let title: String?
     let dimension: Int
     let data: Data
@@ -14,7 +14,7 @@ struct CubeLUT: Sendable, Equatable {
     let domainMax: SIMD3<Float>
 }
 
-enum LUTError: Error, LocalizedError, Equatable {
+nonisolated enum LUTError: Error, LocalizedError, Equatable {
     case missingSize
     case unsupportedSize(Int)
     case unsupported1DLUT
@@ -40,7 +40,7 @@ enum LUTError: Error, LocalizedError, Equatable {
     }
 }
 
-enum CubeLUTParser {
+nonisolated enum CubeLUTParser {
 
     /// Core Image allocates `dimension^3 * 16` bytes for the cube; 128 caps that
     /// at 32 MB, well past any LUT a photo app has reason to ship.
@@ -119,7 +119,7 @@ enum CubeLUTParser {
 /// Parsing a 33³ cube allocates ~575 KB and walks ~36k lines, so it must never
 /// happen per frame. Entries are cached for the process lifetime; the bundled
 /// set is small and fixed.
-final class LUTStore: @unchecked Sendable {
+nonisolated final class LUTStore: @unchecked Sendable {
     static let shared = LUTStore()
 
     private let lock = NSLock()

@@ -8,7 +8,7 @@ import OSLog
 /// One shared instance owns the `CIContext`: contexts are expensive to create
 /// and cache compiled shaders internally, so per-frame or per-view contexts
 /// would stall the live preview.
-final class ImageProcessor: @unchecked Sendable {
+nonisolated final class ImageProcessor: @unchecked Sendable {
 
     static let shared = ImageProcessor()
 

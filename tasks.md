@@ -6,7 +6,7 @@
 > Living file. Updated as work proceeds. Paired with `PhotoStyler_Project_Guide.md` (decisions + context).
 > **Resume here:** read the "Current position" line below, then the guide's Decision Log.
 
-**Current position:** Phase 0 complete — project builds and runs on the simulator for the first time. Phase 1 done. Imaging + profile core written (Phase 3/4 foundations). Blocked on Murali for Homebrew (0.5) and `gh auth login` (0.8); next Claude task is the Phase 2 camera rewrite.
+**Current position:** Phases 0, 1, 2 complete. Swift 6, zero warnings. Camera rewritten and its failure paths verified by screenshot; the live viewfinder still needs a physical iPhone (6.5). Next: Phase 3/4 — profile manifest, starter profiles, and the shop UI. Blocked on Murali for Homebrew (0.5) and `gh auth login` (0.8).
 **Last updated:** 2026-09-05
 
 ---
@@ -38,21 +38,21 @@
 | 1.7 | Resolve Info.plist conflict | 🤖 | ✅ | Deleted the stub and the now-dead `PBXFileSystemSynchronizedBuildFileExceptionSet` that existed only to exclude it. |
 | 1.8 | Add `NSPhotoLibraryAddUsageDescription` | 🤖 | ✅ | 🔴 Fixed. Also added `ITSAppUsesNonExemptEncryption=NO`, app category `photography`, display name. |
 | 1.9 | Rename `cameramanager.swift` → `CameraManager.swift` | 🤖 | ✅ | Project uses synchronized folder groups, so the rename needed no pbxproj file references. |
-| 1.10 | `SWIFT_VERSION` 5.0 → 6.0 + strict concurrency | 🤖 | ⏭ | **Moved to Phase 2.** Flipping to Swift 6 now would break the baseline build before the camera rewrite lands (task 2.1) that actually fixes the `Sendable` errors. |
+| 1.10 | `SWIFT_VERSION` 5.0 → 6.0 + strict concurrency | 🤖 | ✅ | Swift 6 language mode on, builds with **zero warnings**. Migration surfaced a real bug: `PhotoCaptureDelegate` was implicitly `@MainActor` (target default) while AVFoundation calls it back on its own queue. |
 | 1.11 | SwiftLint + SwiftFormat config & build phase | 🤖 | ⬜ | Depends on 0.6. |
 
 ## Phase 2 — Camera layer rebuild
 
 | # | Task | Owner | Status | Notes |
 |---|------|-------|--------|-------|
-| 2.1 | Move session config + `startRunning` off main thread | 🤖 | ⬜ | Currently blocks main thread → launch hang. Also the real fix for `Sendable` errors at `cameramanager.swift:34,71`. |
-| 2.2 | Add session lifecycle (`stopRunning` on disappear) | 🤖 | ⬜ | Never stopped today → battery drain, holds hardware. |
-| 2.3 | Guard flash against unsupported devices | 🤖 | ⬜ | Front camera has no flash; must check `output.supportedFlashModes`. |
-| 2.4 | Replace `CameraPreview` with `layerClass` UIView | 🤖 | ⬜ | Kills deprecated `UIScreen.main.bounds` and the fragile `sublayers?.first` lookup. |
-| 2.5 | Rotation via `AVCaptureDevice.RotationCoordinator` | 🤖 | ⬜ | Without it, landscape photos save wrong-way-up. |
-| 2.6 | Real permission-denied state + Settings deep link | 🤖 | ⬜ | Currently `default: break` → silent dead screen. |
-| 2.7 | Tap-to-focus/expose, zoom, dual-wide camera | 🤖 | ⬜ | |
-| 2.8 | Thermal + interruption handling | 🤖 | ⬜ | |
+| 2.1 | Move session config + `startRunning` off main thread | 🤖 | ✅ | `CameraController` funnels every mutation through a private serial `sessionQueue`; `@unchecked Sendable` with the invariant documented at the type. |
+| 2.2 | Add session lifecycle (`stopRunning` on disappear) | 🤖 | ✅ | `stop()` on disappear; `CameraView` calls it from `.onDisappear`. |
+| 2.3 | Guard flash against unsupported devices | 🤖 | ✅ | `capturePhoto` consults `photoOutput.supportedFlashModes`; UI hides the toggle entirely on the front camera and clears `isFlashOn` when flipping. |
+| 2.4 | Replace `CameraPreview` with `layerClass` UIView | 🤖 | ✅ | `PreviewUIView` overrides `layerClass`, so UIKit sizes the layer. Deprecated `UIScreen.main` and the `sublayers?.first` lookup are both gone. |
+| 2.5 | Rotation via `AVCaptureDevice.RotationCoordinator` | 🤖 | ✅ | `AVCaptureDevice.RotationCoordinator` + KVO on `videoRotationAngleForHorizonLevelCapture`, applied to the photo connection at capture time. |
+| 2.6 | Real permission-denied state + Settings deep link | 🤖 | ✅ | Real `.denied` phase with a lock screen and an Open Settings deep link — **verified by screenshot**. Was `default: break`. |
+| 2.7 | Tap-to-focus/expose, zoom, dual-wide camera | 🤖 | ✅ | Tap-to-focus/expose (converted through the preview layer), pinch zoom capped at 8x, `.builtInDualWideCamera` preferred over plain wide. |
+| 2.8 | Thermal + interruption handling | 🤖 | ✅ | `AsyncStream<CameraEvent>` from session interruption/runtime-error notifications; model shows a banner and auto-resumes when the interruption ends. |
 
 ## Phase 3 — Imaging pipeline
 
@@ -85,7 +85,7 @@
 | 5.2 | Profile strip over viewfinder | 🤖 | ⬜ | |
 | 5.3 | Full-res capture through same chain | 🤖 | ⬜ | |
 | 5.4 | Gallery view (SwiftData) | 🤖 | ⬜ | `ContentView.swift:5` `showGallery` is wired to a button that does nothing today. |
-| 5.5 | Replace deprecated `.navigationBarHidden` | 🤖 | ⬜ | `ContentView.swift:71` → `.toolbar(.hidden, for: .navigationBar)`. |
+| 5.5 | Replace deprecated `.navigationBarHidden` | 🤖 | ✅ | `.navigationBarHidden` → `.toolbar(.hidden, for: .navigationBar)`. |
 | 5.6 | App icon, accent color, launch screen | 🤝 | ⬜ | 1024pt single-size asset. |
 | 5.7 | Haptics, empty/error states, VoiceOver, Dynamic Type | 🤖 | ⬜ | |
 
