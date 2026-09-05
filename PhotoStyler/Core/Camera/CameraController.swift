@@ -1,4 +1,5 @@
 import AVFoundation
+import CoreImage
 import OSLog
 import UIKit
 
@@ -31,6 +32,18 @@ nonisolated final class CameraController: @unchecked Sendable {
 
     private let sessionQueue = DispatchQueue(label: "com.mlcreativestudios.PhotoStyler.session")
     private let photoOutput = AVCapturePhotoOutput()
+    private let videoOutput = AVCaptureVideoDataOutput()
+    private let videoQueue = DispatchQueue(label: "com.mlcreativestudios.PhotoStyler.video")
+    private let videoDelegate = VideoFrameDelegate()
+
+    private weak var previewView: MetalPreviewView?
+    private let processor: ImageProcessor
+
+    /// Style applied to live frames. Read on the capture queue and written from
+    /// the UI, so it is guarded rather than actor-isolated.
+    private let styleLock = NSLock()
+    private var styleProfile: StyleProfile = .original
+    private var styleIntensity: Float = 1
 
     private var videoInput: AVCaptureDeviceInput?
     private var rotationCoordinator: AVCaptureDevice.RotationCoordinator?
@@ -47,8 +60,10 @@ nonisolated final class CameraController: @unchecked Sendable {
     private let eventContinuation: AsyncStream<CameraEvent>.Continuation
     private var observers: [any NSObjectProtocol] = []
 
-    init() {
+    init(processor: ImageProcessor = .shared) {
+        self.processor = processor
         (events, eventContinuation) = AsyncStream.makeStream()
+        videoDelegate.controller = self
         observeSessionNotifications()
     }
 
@@ -92,6 +107,17 @@ nonisolated final class CameraController: @unchecked Sendable {
             self.session.addOutput(self.photoOutput)
             self.photoOutput.maxPhotoQualityPrioritization = .quality
 
+            // Frames for the styled viewfinder. Late frames are dropped rather
+            // than queued so the preview stays current under load.
+            self.videoOutput.alwaysDiscardsLateVideoFrames = true
+            self.videoOutput.videoSettings = [
+                kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
+            ]
+            self.videoOutput.setSampleBufferDelegate(self.videoDelegate, queue: self.videoQueue)
+            if self.session.canAddOutput(self.videoOutput) {
+                self.session.addOutput(self.videoOutput)
+            }
+
             self.startRotationTracking(for: device)
         }
     }
@@ -110,6 +136,46 @@ nonisolated final class CameraController: @unchecked Sendable {
             guard self.session.isRunning else { return }
             self.session.stopRunning()
         }
+    }
+
+    // MARK: - Preview and style
+
+    func attachPreview(_ view: MetalPreviewView) {
+        previewView = view
+    }
+
+    func setStyle(profile: StyleProfile, intensity: Float) {
+        styleLock.lock()
+        styleProfile = profile
+        styleIntensity = intensity
+        styleLock.unlock()
+    }
+
+    private var currentStyle: (profile: StyleProfile, intensity: Float) {
+        styleLock.lock()
+        defer { styleLock.unlock() }
+        return (styleProfile, styleIntensity)
+    }
+
+    fileprivate func handleFrame(_ image: CIImage) {
+        var image = image
+        if position == .front {
+            // Selfies should read as a mirror, matching the system camera.
+            image = image
+                .transformed(by: CGAffineTransform(scaleX: -1, y: 1))
+                .transformed(by: CGAffineTransform(translationX: image.extent.width, y: 0))
+        }
+        renderPreviewFrame(image)
+    }
+
+    /// Renders one frame into the preview, applying the current style.
+    /// Shared by the live capture path and the simulated feed.
+    func renderPreviewFrame(_ image: CIImage) {
+        guard let previewView else { return }
+        let style = currentStyle
+        previewView.enqueue(
+            processor.apply(profile: style.profile, to: image, intensity: style.intensity)
+        )
     }
 
     // MARK: - Capabilities
@@ -241,11 +307,18 @@ nonisolated final class CameraController: @unchecked Sendable {
         rotationObservation = coordinator.observe(
             \.videoRotationAngleForHorizonLevelCapture, options: [.initial, .new]
         ) { [weak self] coordinator, _ in
-            guard let self,
-                  let connection = self.photoOutput.connection(with: .video) else { return }
-            let angle = coordinator.videoRotationAngleForHorizonLevelCapture
-            if connection.isVideoRotationAngleSupported(angle) {
-                connection.videoRotationAngle = angle
+            guard let self else { return }
+            let captureAngle = coordinator.videoRotationAngleForHorizonLevelCapture
+            if let connection = self.photoOutput.connection(with: .video),
+               connection.isVideoRotationAngleSupported(captureAngle) {
+                connection.videoRotationAngle = captureAngle
+            }
+            // The preview follows the horizon-level *preview* angle, which
+            // differs from the capture angle on some orientations.
+            let previewAngle = coordinator.videoRotationAngleForHorizonLevelPreview
+            if let connection = self.videoOutput.connection(with: .video),
+               connection.isVideoRotationAngleSupported(previewAngle) {
+                connection.videoRotationAngle = previewAngle
             }
         }
     }
@@ -336,5 +409,24 @@ private nonisolated final class PhotoCaptureDelegate: NSObject, AVCapturePhotoCa
         } else {
             completion(.failure(CameraError.captureFailed("No image data was produced.")))
         }
+    }
+}
+
+/// Receives capture frames. Separate from `CameraController` because
+/// AVFoundation delegates must be `NSObject` subclasses, and because the
+/// callback arrives on the video queue rather than any actor.
+private nonisolated final class VideoFrameDelegate:
+    NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, @unchecked Sendable {
+
+    /// Weak so the controller stays the owner of this pair.
+    weak var controller: CameraController?
+
+    func captureOutput(
+        _ output: AVCaptureOutput,
+        didOutput sampleBuffer: CMSampleBuffer,
+        from connection: AVCaptureConnection
+    ) {
+        guard let buffer = sampleBuffer.imageBuffer else { return }
+        controller?.handleFrame(CIImage(cvPixelBuffer: buffer))
     }
 }

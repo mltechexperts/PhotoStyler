@@ -43,15 +43,20 @@ struct CameraView: View {
     // MARK: - Viewfinder
 
     private var viewfinder: some View {
-        CameraPreview(session: camera.session) { devicePoint, layerPoint in
-            Task { await camera.focus(at: devicePoint, layerPoint: layerPoint) }
+        MetalCameraPreview(controller: camera.controller) { normalised in
+            Task { await camera.focus(atNormalisedPoint: normalised) }
         }
         .ignoresSafeArea()
-        .overlay(alignment: .topLeading) {
-            if let point = camera.focusIndicator {
-                FocusIndicator()
-                    .position(point)
-                    .transition(.opacity)
+        .overlay {
+            GeometryReader { geo in
+                if let point = camera.focusIndicator {
+                    FocusIndicator()
+                        .position(
+                            x: point.x * geo.size.width,
+                            y: point.y * geo.size.height
+                        )
+                        .transition(.opacity)
+                }
             }
         }
         .animation(.easeOut(duration: 0.15), value: camera.focusIndicator)
@@ -71,6 +76,14 @@ struct CameraView: View {
         VStack {
             topBar
             Spacer()
+            if camera.phase == .running {
+                ProfileStrip(
+                    profiles: camera.profiles,
+                    selected: camera.selectedProfile,
+                    onSelect: camera.select
+                )
+                .padding(.bottom, 14)
+            }
             if let error = camera.transientError {
                 ErrorBanner(message: error, dismiss: camera.dismissError)
                     .padding(.horizontal, 20)
@@ -134,6 +147,7 @@ struct CameraView: View {
 
     private var shutter: some View {
         Button {
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
             Task { await camera.capture() }
         } label: {
             ZStack {
@@ -152,6 +166,59 @@ struct CameraView: View {
 }
 
 // MARK: - Pieces
+
+/// Horizontal picker over the viewfinder. Each swatch is the profile rendered
+/// on the sample image, so the strip previews the look rather than naming it.
+private struct ProfileStrip: View {
+    let profiles: [StyleProfile]
+    let selected: StyleProfile
+    let onSelect: (StyleProfile) -> Void
+
+    var body: some View {
+        ScrollViewReader { proxy in
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(profiles) { profile in
+                        Button {
+                            onSelect(profile)
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        } label: {
+                            swatch(for: profile)
+                        }
+                        .buttonStyle(.plain)
+                        .id(profile.id)
+                    }
+                }
+                .padding(.horizontal, 20)
+            }
+            .onChange(of: selected.id) { _, id in
+                withAnimation(.easeOut(duration: 0.2)) { proxy.scrollTo(id, anchor: .center) }
+            }
+        }
+    }
+
+    private func swatch(for profile: StyleProfile) -> some View {
+        let isSelected = profile.id == selected.id
+        return VStack(spacing: 6) {
+            ProfileThumbnail(profile: profile, maxDimension: 140)
+                .frame(width: 56, height: 56)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(isSelected ? .yellow : .white.opacity(0.5),
+                                lineWidth: isSelected ? 2.5 : 1)
+                }
+
+            Text(profile.name)
+                .font(.caption2.weight(isSelected ? .semibold : .regular))
+                .foregroundStyle(isSelected ? .yellow : .white.opacity(0.85))
+                .lineLimit(1)
+        }
+        .frame(width: 68)
+        .accessibilityLabel(profile.name)
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+    }
+}
 
 private struct CircleButton: View {
     let systemName: String

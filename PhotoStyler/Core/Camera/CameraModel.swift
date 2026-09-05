@@ -44,6 +44,21 @@ final class CameraModel {
     let controller = CameraController()
     private var eventTask: Task<Void, Never>?
 
+    /// Profiles offered in the strip over the viewfinder.
+    private(set) var profiles: [StyleProfile] = [.original]
+    private(set) var selectedProfile: StyleProfile = .original
+    var intensity: Float = 1 { didSet { pushStyle() } }
+
+    private let catalogRepository: any ProfileRepository
+
+    #if targetEnvironment(simulator)
+    private var simulatedFeed: SimulatedCameraFeed?
+    #endif
+
+    init(repository: any ProfileRepository = BundledProfileRepository()) {
+        self.catalogRepository = repository
+    }
+
     var session: AVCaptureSession { controller.session }
 
     // MARK: - Lifecycle
@@ -76,23 +91,79 @@ final class CameraModel {
 
         observeCameraEvents()
 
+        await loadProfiles()
+
         do {
             try await controller.configure()
             await controller.start()
             isFlashSupported = controller.supportedFlashModes.contains(.on)
             isFrontCamera = controller.position == .front
+            pushStyle()
             phase = .running
         } catch {
-            Self.logger.error("Camera setup failed: \(error.localizedDescription, privacy: .public)")
-            phase = .failed(error.localizedDescription)
+            handleCameraUnavailable(error.localizedDescription)
         }
     }
 
     func onDisappear() async {
         eventTask?.cancel()
         eventTask = nil
+        #if targetEnvironment(simulator)
+        simulatedFeed?.stop()
+        simulatedFeed = nil
+        #endif
         await controller.stop()
         phase = .idle
+    }
+
+    /// Single place that decides what an unusable camera means.
+    ///
+    /// On device it is a real failure the user must see. On the Simulator it is
+    /// expected, and the synthetic feed keeps the styled UI reachable so the
+    /// camera screen stays testable without hardware.
+    private func handleCameraUnavailable(_ message: String) {
+        #if targetEnvironment(simulator)
+        guard simulatedFeed == nil else { return }
+        Self.logger.info("Simulator: synthetic feed (\(message, privacy: .public))")
+        startSimulatedFeed()
+        pushStyle()
+        phase = .running
+        #else
+        Self.logger.error("Camera unavailable: \(message, privacy: .public)")
+        phase = .failed(message)
+        #endif
+    }
+
+    #if targetEnvironment(simulator)
+    private func startSimulatedFeed() {
+        let controller = controller
+        let feed = SimulatedCameraFeed { image in
+            controller.renderPreviewFrame(image)
+        }
+        simulatedFeed = feed
+        feed.start()
+        isFlashSupported = true
+    }
+    #endif
+
+    // MARK: - Profiles
+
+    private func loadProfiles() async {
+        guard profiles.count <= 1 else { return }
+        do {
+            profiles = try await catalogRepository.loadProfiles()
+        } catch {
+            Self.logger.error("Profile load failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    func select(_ profile: StyleProfile) {
+        selectedProfile = profile
+        pushStyle()
+    }
+
+    private func pushStyle() {
+        controller.setStyle(profile: selectedProfile, intensity: intensity)
     }
 
     private func observeCameraEvents() {
@@ -107,7 +178,11 @@ final class CameraModel {
                     self.transientError = nil
                     await self.controller.resumeAfterInterruption()
                 case .runtimeError(let message):
-                    self.phase = .failed(message)
+                    // On the Simulator the session configures and starts
+                    // cleanly, then fails at first frame because nothing is
+                    // behind it — so the runtime error, not configure(), is
+                    // where the fallback has to happen.
+                    self.handleCameraUnavailable(message)
                 }
             }
         }
@@ -122,9 +197,13 @@ final class CameraModel {
 
         do {
             let mode: AVCaptureDevice.FlashMode = (isFlashOn && isFlashSupported) ? .on : .off
-            let data = try await controller.capturePhoto(flashMode: mode)
-            recentImage = UIImage(data: data)
-            try await PhotoLibrarySaver.save(data)
+            let raw = try await captureData(flashMode: mode)
+            // The same profile the viewfinder showed, applied at full
+            // resolution — the preview is downscaled, the saved file is not.
+            let styled = try await style(raw)
+            recentImage = UIImage(data: styled)
+            try await PhotoLibrarySaver.save(styled)
+            lastCaptureProfileID = selectedProfile.id
         } catch {
             transientError = error.localizedDescription
             Self.logger.error("Capture failed: \(error.localizedDescription, privacy: .public)")
@@ -144,11 +223,59 @@ final class CameraModel {
         }
     }
 
-    func focus(at devicePoint: CGPoint, layerPoint: CGPoint) async {
-        focusIndicator = layerPoint
-        await controller.focus(at: devicePoint)
+    /// `point` is normalised to the preview view (0...1 in each axis).
+    func focus(atNormalisedPoint point: CGPoint) async {
+        focusIndicator = point
+        // AVFoundation's point of interest is expressed in the sensor's
+        // landscape space, so x and y swap for a portrait preview.
+        await controller.focus(at: CGPoint(x: point.y, y: 1 - point.x))
         try? await Task.sleep(for: .seconds(1))
-        if focusIndicator == layerPoint { focusIndicator = nil }
+        if focusIndicator == point { focusIndicator = nil }
+    }
+
+    /// Set after a successful capture so the gallery can record which profile
+    /// produced the file.
+    private(set) var lastCaptureProfileID: String?
+
+    private func captureData(flashMode: AVCaptureDevice.FlashMode) async throws -> Data {
+        #if targetEnvironment(simulator)
+        if simulatedFeed != nil {
+            let processor = ImageProcessor.shared
+            let encoded = await Task.detached(priority: .userInitiated) {
+                processor.jpegData(SampleImage.image)
+            }.value
+            guard let encoded else {
+                throw CameraError.captureFailed("Could not encode the simulated frame.")
+            }
+            return encoded
+        }
+        #endif
+        return try await controller.capturePhoto(flashMode: flashMode)
+    }
+
+    private func style(_ data: Data) async throws -> Data {
+        let profile = selectedProfile
+        let value = intensity
+        // Nothing to apply for the pass-through profile or at zero intensity;
+        // returning the original bytes also preserves the untouched EXIF.
+        guard !profile.isOriginal, value > 0 else { return data }
+        return try await renderStyled(data, profile: profile, intensity: value)
+    }
+
+    private func renderStyled(
+        _ data: Data, profile: StyleProfile, intensity: Float
+    ) async throws -> Data {
+        let processor = ImageProcessor.shared
+        let result = await Task.detached(priority: .userInitiated) { () -> Data? in
+            guard let source = CIImage(data: data) else { return nil }
+            let styled = processor.apply(profile: profile, to: source, intensity: intensity)
+            // Carry the original EXIF through so date, lens and exposure survive.
+            return processor.jpegData(styled, properties: source.properties)
+        }.value
+        guard let result else {
+            throw CameraError.captureFailed("Could not apply the style to the photo.")
+        }
+        return result
     }
 
     func dismissError() { transientError = nil }

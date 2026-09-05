@@ -188,13 +188,23 @@ nonisolated final class ImageProcessor: @unchecked Sendable {
     }
 
     /// Full-quality JPEG for export, tagged sRGB so colours survive the trip to
-    /// the photo library.
-    func jpegData(_ image: CIImage, quality: Float = 0.95) -> Data? {
+    /// the photo library. `properties` carries the source EXIF through, so the
+    /// saved file keeps its capture date, lens and exposure.
+    func jpegData(
+        _ image: CIImage,
+        quality: Float = 0.95,
+        properties: [String: Any] = [:]
+    ) -> Data? {
         guard let colorSpace = CGColorSpace(name: CGColorSpace.sRGB) else { return nil }
-        return context.jpegRepresentation(
-            of: image,
-            colorSpace: colorSpace,
-            options: [kCGImageDestinationLossyCompressionQuality as CIImageRepresentationOption: quality]
-        )
+        var options: [CIImageRepresentationOption: Any] = [
+            kCGImageDestinationLossyCompressionQuality as CIImageRepresentationOption: quality,
+        ]
+        if let exif = properties[kCGImagePropertyExifDictionary as String] {
+            options[kCGImagePropertyExifDictionary as CIImageRepresentationOption] = exif
+        }
+        if let tiff = properties[kCGImagePropertyTIFFDictionary as String] {
+            options[kCGImagePropertyTIFFDictionary as CIImageRepresentationOption] = tiff
+        }
+        return context.jpegRepresentation(of: image, colorSpace: colorSpace, options: options)
     }
 }
