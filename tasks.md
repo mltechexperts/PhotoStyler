@@ -108,7 +108,7 @@
 | 7.3 | Write + host privacy policy | 🤝 | 🔄 | Draft at `docs/privacy-policy.md`. 🔴 **Needs Murali to host it** and give me the URL — App Review requires a reachable link. `~/MyApps/Photowebsite/` is the natural home. |
 | 7.4 | Check "PhotoStyler" name availability | 👤 | ⬜ | Before committing to the name. |
 | 7.5 | App Store Connect record | 👤 | ⬜ | Photo & Video, age rating, nutrition labels, `ITSAppUsesNonExemptEncryption=false`. |
-| 7.6 | 6.9" screenshots + description + keywords | 🤝 | ⬜ | |
+| 7.6 | 6.9" screenshots + description + keywords | 🤝 | 🔄 | Automation done: `tools/screenshots.sh` captures the 5-screen set at the required 1320×2868 (6.9") with a fixed 9:41 status bar, driven by the DEBUG launch args. 🔴 **Blocked on a real sample photo** — screenshots of a colour chart will not sell the app. |
 | 7.7 | Archive → upload → TestFlight → submit | 🤝 | ⬜ | |
 | 7.8 | `/security-review` + `/code-review` before upload | 🤖 | ⬜ | |
 
