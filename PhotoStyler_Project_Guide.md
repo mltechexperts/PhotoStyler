@@ -57,6 +57,7 @@ Every decision, with its reasoning. Add a row whenever a call is made.
 | D12 | Photo storage | **Metadata in SwiftData, JPEG on disk** | Image bytes in the store would bloat it and slow every query. The photo is in the user's library anyway; this is the app's own record of which profile produced which frame. | 2026-09-05 |
 | D13 | Render test style | **Measured pixel values, not golden images** | Assertions on mean colour stay readable in review and need no binary fixtures that rot. | 2026-09-06 |
 | D14 | CI simulator choice | **Discovered at runtime** | Runner images change their simulator lineup without notice, so a hard-coded device name is a slow-motion breakage. | 2026-09-06 |
+| D15 | Repo visibility | **Public** | Private repos bill macOS Actions minutes at 10×, leaving ~200/month — CI would have stopped mid-month. History was scanned for tokens, keys and signing artefacts before the switch; none present. | 2026-09-06 |
 
 ### Open assumptions — revisit if wrong
 
@@ -73,14 +74,14 @@ Every decision, with its reasoning. Add a row whenever a call is made.
 ## 🖥 Current State (verified 2026-09-06)
 
 **Environment:** macOS 27.0 · Xcode 26.6 · Swift 6.3.3 · arm64 · git 2.50.1
-**Repo:** https://github.com/mltechexperts/PhotoStyler (private)
+**Repo:** https://github.com/mltechexperts/PhotoStyler (public)
 
 | Component | State |
 |-----------|-------|
 | iOS platform | ✅ iOS 26.5 installed. Was the original hard blocker. |
 | Project builds | ✅ Swift 6 language mode, **zero warnings**. |
 | Tests | ✅ **38 green** — 32 Swift Testing units in 4 suites, 6 XCUITest. |
-| CI | ✅ `.github/workflows/ci.yml`, build+test and SwiftLint. ⚠️ Private repo: macOS minutes bill at **10×**, so ~200 usable minutes/month on the free tier. |
+| CI | ✅ `.github/workflows/ci.yml`, build+test and SwiftLint. Repo is public, so Actions minutes are free and unlimited. |
 | Homebrew / Node / XcodeBuildMCP | ❌ Still not installed (needs sudo). Convenience only — `xcodebuild`/`simctl` cover everything. |
 | `gh` | ✅ Authenticated as `mltechexperts`. |
 
