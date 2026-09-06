@@ -19,6 +19,22 @@ final class PhotoStylerUITests: XCTestCase {
         return app
     }
 
+    /// Answers the camera permission alert if iOS raises one.
+    ///
+    /// A fresh device — every CI run — starts at `.notDetermined`, so the app
+    /// awaits `requestAccess` and sits in its preparing state until the alert is
+    /// dismissed. `addUIInterruptionMonitor` needs a subsequent interaction to
+    /// fire and is unreliable here, so the alert is answered directly on
+    /// SpringBoard.
+    @discardableResult
+    private func grantCameraIfAsked(timeout: TimeInterval = 5) -> Bool {
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        let allow = springboard.buttons["Allow"]
+        guard allow.waitForExistence(timeout: timeout) else { return false }
+        allow.tap()
+        return true
+    }
+
     func testHomeScreenShowsAllEntryPoints() {
         let app = launch()
         XCTAssertTrue(app.staticTexts["PhotoStyler"].waitForExistence(timeout: 10))
@@ -49,7 +65,8 @@ final class PhotoStylerUITests: XCTestCase {
     func testCameraShowsProfileStripAndShutter() {
         // Relies on the Simulator's synthetic feed standing in for hardware.
         let app = launch("-openCamera")
-        XCTAssertTrue(app.buttons["Take photo"].waitForExistence(timeout: 15))
+        grantCameraIfAsked()
+        XCTAssertTrue(app.buttons["Take photo"].waitForExistence(timeout: 30))
         XCTAssertTrue(app.buttons["Switch camera"].exists)
         XCTAssertTrue(app.buttons["Cinematic"].waitForExistence(timeout: 10))
     }
