@@ -104,8 +104,8 @@
 | # | Task | Owner | Status | Notes |
 |---|------|-------|--------|-------|
 | 7.1 | Enroll in Apple Developer Program ($99/yr) | 👤 | ⬜ | **A3.** Start early — 24–48h approval. Nothing blocks until 7.7. |
-| 7.2 | `PrivacyInfo.xcprivacy` | 🤖 | ⬜ | Mandatory. No tracking, no collection — photos stay on device. |
-| 7.3 | Write + host privacy policy | 🤝 | ⬜ | Required for camera apps. `~/MyApps/Photowebsite/` (currently empty) is the natural host. |
+| 7.2 | `PrivacyInfo.xcprivacy` | 🤖 | ✅ | `PrivacyInfo.xcprivacy` — no tracking, nothing collected, and **no required-reason APIs** (verified by search, not assumed). Confirmed bundled into the .app. |
+| 7.3 | Write + host privacy policy | 🤝 | 🔄 | Draft at `docs/privacy-policy.md`. 🔴 **Needs Murali to host it** and give me the URL — App Review requires a reachable link. `~/MyApps/Photowebsite/` is the natural home. |
 | 7.4 | Check "PhotoStyler" name availability | 👤 | ⬜ | Before committing to the name. |
 | 7.5 | App Store Connect record | 👤 | ⬜ | Photo & Video, age rating, nutrition labels, `ITSAppUsesNonExemptEncryption=false`. |
 | 7.6 | 6.9" screenshots + description + keywords | 🤝 | ⬜ | |

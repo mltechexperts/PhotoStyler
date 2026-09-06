@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- PhotoStyler does not track users across apps or websites. -->
+	<key>NSPrivacyTracking</key>
+	<false/>
+	<key>NSPrivacyTrackingDomains</key>
+	<array/>
+
+	<!--
+	  Nothing is collected. Photos are captured, styled and saved entirely on
+	  device: to the user's photo library and to the app's own container. There
+	  is no account, no analytics, no network request, and no third-party SDK.
+	-->
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array/>
+
+	<!--
+	  No required-reason APIs are used. Verified by search: the app touches
+	  none of UserDefaults, file timestamp attributes, disk space, system boot
+	  time, or active keyboard APIs.
+	-->
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array/>
+</dict>
+</plist>
