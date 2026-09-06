@@ -73,9 +73,13 @@ nonisolated final class ImageProcessor: @unchecked Sendable {
             let f = CIFilter.temperatureAndTint()
             f.inputImage = out
             f.neutral = CIVector(x: 6500, y: 0)
-            // ±1 maps to roughly ±1500K, a strong but not destructive shift.
-            f.targetNeutral = CIVector(x: CGFloat(6500 + a.temperature * 1500),
-                                       y: CGFloat(a.tint * 50))
+            // Both axes are inverted relative to how the parameters read:
+            // CITemperatureAndTint adapts the image *from* `neutral` *to*
+            // `targetNeutral`, so a lower target temperature warms the image
+            // and a negative target tint pushes magenta. ±1 maps to roughly
+            // ±1500K, a strong but not destructive shift.
+            f.targetNeutral = CIVector(x: CGFloat(6500 - a.temperature * 1500),
+                                       y: CGFloat(-a.tint * 50))
             out = f.outputImage ?? out
         }
 

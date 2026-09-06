@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Scheme LastUpgradeVersion = "2630" version = "1.7">
+   <BuildAction parallelizeBuildables = "YES" buildImplicitDependencies = "YES">
+      <BuildActionEntries>
+         <BuildActionEntry buildForTesting = "YES" buildForRunning = "YES" buildForProfiling = "YES" buildForArchiving = "YES" buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "6A5C4E232F6D901B00FAD7E6"
+               BuildableName = "PhotoStyler.app"
+               BlueprintName = "PhotoStyler"
+               ReferencedContainer = "container:PhotoStyler.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+      </BuildActionEntries>
+   </BuildAction>
+   <TestAction
+      buildConfiguration = "Debug"
+      selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
+      selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
+      shouldUseLaunchSchemeArgsEnv = "YES">
+      <Testables>
+         <TestableReference skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "AA00000000000000000001"
+               BuildableName = "PhotoStylerTests.xctest"
+               BlueprintName = "PhotoStylerTests"
+               ReferencedContainer = "container:PhotoStyler.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "AB00000000000000000001"
+               BuildableName = "PhotoStylerUITests.xctest"
+               BlueprintName = "PhotoStylerUITests"
+               ReferencedContainer = "container:PhotoStyler.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+      </Testables>
+   </TestAction>
+   <LaunchAction
+      buildConfiguration = "Debug"
+      selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
+      selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
+      launchStyle = "0"
+      useCustomWorkingDirectory = "NO"
+      ignoresPersistentStateOnLaunch = "NO"
+      debugDocumentVersioning = "YES"
+      debugServiceExtension = "internal"
+      allowLocationSimulation = "YES">
+      <BuildableProductRunnable runnableDebuggingMode = "0">
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "6A5C4E232F6D901B00FAD7E6"
+            BuildableName = "PhotoStyler.app"
+            BlueprintName = "PhotoStyler"
+            ReferencedContainer = "container:PhotoStyler.xcodeproj">
+         </BuildableReference>
+      </BuildableProductRunnable>
+   </LaunchAction>
+   <ProfileAction
+      buildConfiguration = "Release"
+      shouldUseLaunchSchemeArgsEnv = "YES"
+      savedToolIdentifier = ""
+      useCustomWorkingDirectory = "NO"
+      debugDocumentVersioning = "YES">
+      <BuildableProductRunnable runnableDebuggingMode = "0">
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "6A5C4E232F6D901B00FAD7E6"
+            BuildableName = "PhotoStyler.app"
+            BlueprintName = "PhotoStyler"
+            ReferencedContainer = "container:PhotoStyler.xcodeproj">
+         </BuildableReference>
+      </BuildableProductRunnable>
+   </ProfileAction>
+   <AnalyzeAction buildConfiguration = "Debug"></AnalyzeAction>
+   <ArchiveAction buildConfiguration = "Release" revealArchiveInOrganizer = "YES"></ArchiveAction>
+</Scheme>
